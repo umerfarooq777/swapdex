@@ -3,10 +3,12 @@ import Header from "./components/Header";
 import Swap from "./components/Swap";
 import Tokens from "./components/Tokens";
 import { Routes, Route } from "react-router-dom";
-import { useConnect, useAccount } from "wagmi";
+import { useConnect, useAccount, useDisconnect } from "wagmi";
 import { MetaMaskConnector } from "wagmi/connectors/metaMask";
 
 function App() {
+
+  const { disconnect } = useDisconnect()
   const { address, isConnected } = useAccount();
   const { connect } = useConnect({
     connector: new MetaMaskConnector(),
@@ -15,7 +17,7 @@ function App() {
   return (
 
     <div className="App">
-      <Header connect={connect} isConnected={isConnected} address={address} />
+      <Header connect={connect} isConnected={isConnected} address={address} disconnect={disconnect} />
       <div className="mainWindow">
         <Routes>
           <Route path="/" element={<Swap isConnected={isConnected} address={address} />} />

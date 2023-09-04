@@ -8,6 +8,8 @@ import {
 import tokenList from "../tokenList.json";
 import axios from "axios";
 import { useSendTransaction, useWaitForTransaction } from "wagmi";
+import { fetchBalance } from '@wagmi/core'
+
 
 
 function Swap(props) {
@@ -20,11 +22,12 @@ function Swap(props) {
   //token amounts to be swapped
   const [tokenOneAmount, setTokenOneAmount] = useState(null);
   const [tokenTwoAmount, setTokenTwoAmount] = useState(null);
+  const [myBalance, setMyBalance] = useState(null);
 
   //tokens individual data
   const [tokenOne, setTokenOne] = useState(tokenList[0]);
   const [tokenTwo, setTokenTwo] = useState(tokenList[1]);
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const [changeToken, setChangeToken] = useState(1);
   const [prices, setPrices] = useState(null);
@@ -62,13 +65,15 @@ function Swap(props) {
 
   function switchTokens() {
     setPrices(null);
-    setTokenOneAmount(null);
+    // setTokenOneAmount(null);
     setTokenTwoAmount(null);
     const one = tokenOne;
     const two = tokenTwo;
     setTokenOne(two);
     setTokenTwo(one);
     fetchPrices(two.address, one.address);
+
+
   }
 
   function openModal(asset) {
@@ -76,9 +81,18 @@ function Swap(props) {
     setIsOpen(true);
   }
 
-  function modifyToken(i) {
+  async function fetchTokenOneBalance(accAddress, tokenAddress) {
+    const balance = await fetchBalance({
+      address: accAddress,
+      token: tokenAddress,
+    })
+    console.log(balance);
+    setMyBalance(balance)
+  }
+
+  function modifyToken(_amount, i) {
     setPrices(null);
-    setTokenOneAmount(null);
+    // setTokenOneAmount(null);
     setTokenTwoAmount(null);
     if (changeToken === 1) {
       setTokenOne(tokenList[i]);
@@ -87,6 +101,10 @@ function Swap(props) {
       setTokenTwo(tokenList[i]);
       fetchPrices(tokenOne.address, tokenList[i].address);
     }
+
+
+
+
     setIsOpen(false);
   }
 
@@ -103,6 +121,8 @@ function Swap(props) {
       `https://api.1inch.io/v5.0/1/approve/allowance?tokenAddress=${tokenOne.address}&walletAddress=${address}`
     );
 
+    console.log("allowance", allowance);
+
     if (allowance.data.allowance === "0") {
       const approve = await axios.get(
         `https://api.1inch.io/v5.0/1/approve/transaction?tokenAddress=${tokenOne.address}`
@@ -114,8 +134,7 @@ function Swap(props) {
     }
 
     const tx = await axios.get(
-      `https://api.1inch.io/v5.0/1/swap?fromTokenAddress=${
-        tokenOne.address
+      `https://api.1inch.io/v5.0/1/swap?fromTokenAddress=${tokenOne.address
       }&toTokenAddress=${tokenTwo.address}&amount=${tokenOneAmount.padEnd(
         tokenOne.decimals + tokenOneAmount.length,
         "0"
@@ -131,6 +150,13 @@ function Swap(props) {
   useEffect(() => {
     fetchPrices(tokenList[0].address, tokenList[1].address);
   }, []);
+
+  useEffect(() => {
+    if (address && tokenOne.address) {
+
+      fetchTokenOneBalance(address, tokenOne.address)
+    }
+  }, [address, tokenOne]);
 
   useEffect(() => {
     if (txDetails.to && isConnected) {
@@ -149,6 +175,16 @@ function Swap(props) {
       });
     }
   }, [isLoading]);
+
+
+  useEffect(() => {
+
+    if (tokenOneAmount && prices) {
+      setTokenTwoAmount((prices.ratio ? tokenOneAmount * prices.ratio : tokenOneAmount || null).toFixed(2));
+    } else {
+      setTokenTwoAmount(null);
+    }
+  }, [tokenOneAmount, prices]);
 
   useEffect(() => {
     messageApi.destroy();
@@ -195,7 +231,7 @@ function Swap(props) {
               <div
                 className="tokenChoice"
                 key={i}
-                onClick={() => modifyToken(i)}
+                onClick={() => modifyToken(tokenOneAmount, i)}
               >
                 <img src={e.img} alt={e.ticker} className="tokenLogo" />
                 <div className="tokenChoiceNames">
@@ -209,7 +245,8 @@ function Swap(props) {
       </Modal>
       <div className="tradeBox">
         <div className="tradeBoxHeader">
-          <h4>Swap</h4>
+          {myBalance ? <h4>{`Balance : ${myBalance.formatted} ${myBalance.symbol}`}</h4> : <h4> </h4>}
+
           <Popover
             content={settings}
             title="Settings"
@@ -227,9 +264,9 @@ function Swap(props) {
             disabled={!prices}
           />
           <Input
-          placeholder="0" 
-          value={tokenTwoAmount} 
-          disabled={true} 
+            placeholder="0"
+            value={tokenTwoAmount}
+            disabled={true}
           />
           <div className="switchButton" onClick={switchTokens}>
             <ArrowDownOutlined className="switchArrow" />
@@ -244,13 +281,14 @@ function Swap(props) {
             {tokenTwo.ticker}
             <DownOutlined />
           </div>
+
         </div>
         <div
           className="swapButton"
           disabled={!tokenOneAmount || !isConnected}
           onClick={fetchDexSwap}
         >
-          Swap
+          Execute Swap
         </div>
       </div>
     </>

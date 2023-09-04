@@ -6,20 +6,20 @@ import { Link, useLocation } from "react-router-dom";
 
 function Header(props) {
 
-  const {address, isConnected, connect} = props;
+  const { address, isConnected, connect, disconnect } = props;
   // let path = window.location.pathname;
   let pathUrl = useLocation();
   let path = pathUrl.pathname
-  console.log(path,"hello");
+  console.log(path, "hello");
   return (
     <header>
       <div className="leftH">
         <img src={Logo} alt="logo" className="logo" />
         <Link to="/" className="link">
-          <div className={`${path==="/"?"headerItem headerItemActive":"headerItem"}`}>Swap</div>
+          <div className={`${path === "/" ? "headerItem headerItemActive" : "headerItem"}`}>Swap</div>
         </Link>
         <Link to="/tokens" className="link">
-          <div className={`${path==="/tokens"?"headerItem headerItemActive":"headerItem"}`}>Tokens</div>
+          <div className={`${path === "/tokens" ? "headerItem headerItemActive" : "headerItem"}`}>Tokens</div>
         </Link>
       </div>
       <div className="rightH">
@@ -28,8 +28,15 @@ function Header(props) {
           Ethereum
         </div>
         <div className="connectButton" onClick={connect}>
-          {isConnected ? (address.slice(0,4) +"..." +address.slice(38)) : "Connect"}
+          {isConnected ? (address.slice(0, 4) + "..." + address.slice(38)) : "Connect"}
+
         </div>
+
+        {isConnected ?
+          <div className="disconnectButton" onClick={disconnect}>
+
+            Disonnect
+          </div> : null}
       </div>
     </header>
   );
